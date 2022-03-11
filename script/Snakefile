@@ -1,0 +1,554 @@
+pheno_id = 20261
+ethnic = "white"
+raw_file="/zfssz3/ST_MCHRI/BIGDATA/bigdata_ai/pub_data/PRS/UKB/ukb_raw_data/pheno/ukb47460.csv"
+seed="666"
+p_values = ["1e-8","1e-7","1e-6","1e-5","1e-4","1e-3"]
+
+rule all:
+    input:       
+        # "../s1.all_valid_pheno.txt",
+        # "../s1.train_getID.list",
+        # "../s1.test_getID.list",
+        # "../s1.train_pheno.txt",
+        # "../s1.test_pheno.txt",
+        "../s2.gwas_train_result.fastGWA",
+        "../s2.P.stat.txt",
+        "../mhd.png",
+        "../HEreg.HEreg",
+        "../1e-8/snp_prs.list",
+        "../1e-7/snp_prs.list",
+        "../1e-6/snp_prs.list",
+        "../1e-5/snp_prs.list",
+        "../1e-4/snp_prs.list",
+        "../1e-3/snp_prs.list",
+        "../1e-8/train.ped",
+        "../1e-8/train_ML.raw",
+        "../1e-8/test.ped",
+        "../1e-8/test_ML.raw",
+        "../1e-8/train_ML.npz",
+        "../1e-8/test_ML.npz",
+        "../1e-7/train.ped",
+        "../1e-7/train_ML.raw",
+        "../1e-7/test.ped",
+        "../1e-7/test_ML.raw",
+        "../1e-7/train_ML.npz",
+        "../1e-7/test_ML.npz",
+        "../1e-6/train.ped",
+        "../1e-6/train_ML.raw",
+        "../1e-6/test.ped",
+        "../1e-6/test_ML.raw",
+        "../1e-6/train_ML.npz",
+        "../1e-6/test_ML.npz",
+        "../1e-5/train.ped",
+        "../1e-5/train_ML.raw",
+        "../1e-5/test.ped",
+        "../1e-5/test_ML.raw",
+        "../1e-5/train_ML.npz",
+        "../1e-5/test_ML.npz",
+        "../1e-4/train.ped",
+        "../1e-4/train_ML.raw",
+        "../1e-4/test.ped",
+        "../1e-4/test_ML.raw",
+        "../1e-4/train_ML.npz",
+        "../1e-4/test_ML.npz",
+        "../1e-3/train.ped",
+        "../1e-3/train_ML.raw",
+        "../1e-3/test.ped",
+        "../1e-3/test_ML.raw",
+        "../1e-3/train_ML.npz",
+        "../1e-3/test_ML.npz"
+
+rule s0_0get_pheno:
+    input:
+        raw_file
+    output:
+        protected('../{pheno_id}.csv')
+    params:
+        id = pheno_id
+    shell:
+        "/zfssz2/ST_MCHRI/BIGDATA/USER/caoguangshuo/anaconda3/envs/cgsp/bin/python s0.0.get_pheno.py {input} {params.id}"
+
+rule s0_1trans_pheno:
+    input:
+        expand("../{id}.csv", id=pheno_id)
+    output:
+        protected("../keep.list"),
+        protected("../s0.pheno.txt")
+    params:
+        argv2 = expand("../../keep-{race}-ukb.txt", race=ethnic),
+    shell:
+        "/zfssz2/ST_MCHRI/BIGDATA/USER/caoguangshuo/anaconda3/envs/cgsp/bin/python s0.1.transdata.py {input} {params.argv2} {output}"
+
+rule s1_Hreg:
+    input:
+        "../keep.list",
+        "../s0.pheno.txt"
+    params:
+        race = ethnic
+    output:
+        protected("../HEreg.HEreg")
+    shell:
+        "sh s1.0.Hreg.sh {input} {params.race}"
+        
+
+rule s1train_test_split:
+    input:
+        "../s0.pheno.txt"
+    output:
+        protected("../s1.all_valid_pheno.txt"),
+        protected("../s1.train_getID.list"),
+        protected("../s1.test_getID.list"),
+        protected("../s1.train_pheno.txt"),
+        protected("../s1.test_pheno.txt")
+    params:
+        seed = seed,
+        path= "../"
+    shell:
+        "/zfssz2/ST_MCHRI/BIGDATA/USER/caoguangshuo/anaconda3/envs/cgsp/bin/python s1.generate_data.py {input} {params.seed} {params.path}"
+
+rule gwas:
+    input:
+        "../s0.pheno.txt",
+        "../s1.train_getID.list"
+    output:
+        protected("../s2.gwas_train_result.fastGWA")
+    params:
+        grm = expand("/zfssz3/ST_MCHRI/BIGDATA/bigdata_ai/pub_data/PRS/UKB/UKB_impute/1.grn/1.{race}/sp_grm", race=ethnic),
+        qcovar = "/zfssz3/ST_MCHRI/BIGDATA/bigdata_ai/pub_data/PRS/UKB/UKB_impute/2.covar/cov_quan_AGE2PC20.txt",
+        covar = "/zfssz3/ST_MCHRI/BIGDATA/bigdata_ai/pub_data/PRS/UKB/UKB_impute/2.covar/cov_sex.txt"
+    shell:
+        "sh s2.0.GWAS.sh {params.grm} {input} {params.qcovar} {params.covar} ../s2.gwas_train_result"
+
+rule stat_by_P:
+    input:
+        "../s2.gwas_train_result.fastGWA"
+    output:
+        protected("../s2.P.stat.txt")
+    shell:
+        "perl s2.2.stat-By-P_value.pl {input} {output}"
+    
+rule mhd_qq_plot:
+    input:
+        "../s2.gwas_train_result.fastGWA"
+    output:
+        protected("../mhd.png")
+    shell:
+        "sh s2.4.plot_GWAS.sh {input} {output}"
+
+rule s3_1e_8:
+    input:
+        "../s2.gwas_train_result.fastGWA"
+    output:
+        protected("../1e-8/snp.list")
+    shell:
+        "sh s3.0.get_snps_list.sh {input} 1e-8"
+
+rule s3_1e_8_prs:
+    input:
+        "../s2.gwas_train_result.fastGWA"
+    output:
+        protected("../1e-8/snp_prs.list")
+    shell:
+        "/zfssz2/ST_MCHRI/BIGDATA/USER/caoguangshuo/anaconda3/envs/cgsp/bin/python s3.0get_snp_list.py {input} {output} 1e-8"
+
+rule get_plink_file_1e_8:
+    input:
+        "../s1.train_getID.list",
+        "../1e-8/snp.list",
+        "../s1.test_getID.list"
+    output:
+        protected("../1e-8/train/QC.bed"),
+        protected("../1e-8/train/QC.bim"),
+        protected("../1e-8/train/QC.fam"),
+        protected("../1e-8/test/QC.bed"),
+        protected("../1e-8/test/QC.bim"),
+        protected("../1e-8/test/QC.fam")
+    shell:
+        "sh s3.1.get_snps_fam_bim_bed.sh 1e-8 {input}"
+
+rule get_fam_1e_8:
+    input:
+        "../1e-8/train/QC.fam",
+        "../1e-8/test/QC.fam"
+        
+    output:
+        protected("../1e-8/train/QC.fam.new"),
+        protected("../1e-8/test/QC.fam.new")
+    params:
+        values = r'1e-8'
+    shell:
+        "/zfssz2/ST_MCHRI/BIGDATA/USER/caoguangshuo/anaconda3/envs/cgsp/bin/python s3.2.get_fam.py {params.values}"
+
+rule extract_data_1e_8:
+    input:
+        "../1e-8/train/QC.fam",
+        "../1e-8/train/QC.fam.new",
+        "../1e-8/test/QC.fam",
+        "../1e-8/test/QC.fam.new"
+    output:
+        protected("../1e-8/train.ped"),
+        protected("../1e-8/train_ML.raw"),
+        protected("../1e-8/test.ped"),
+        protected("../1e-8/test_ML.raw")
+    shell:
+        "sh s3.3.extract_data.sh 1e-8"
+
+rule make_npz_1e_8:
+    input:
+        "../1e-8/train_ML.raw",
+        "../1e-8/test_ML.raw"
+    output:
+        protected("../1e-8/train_ML.npz"),
+        protected("../1e-8/test_ML.npz")
+    shell:
+        "/zfssz2/ST_MCHRI/BIGDATA/USER/caoguangshuo/anaconda3/envs/cgsp/bin/python s3.4.raw2npz.py 1e-8"
+        
+rule s3_1e_7:
+    input:
+        "../s2.gwas_train_result.fastGWA"
+    output:
+        protected("../1e-7/snp.list")
+    shell:
+        "sh s3.0.get_snps_list.sh {input} 1e-7"
+
+rule s3_1e_7_prs:
+    input:
+        "../s2.gwas_train_result.fastGWA"
+    output:
+        protected("../1e-7/snp_prs.list")
+    shell:
+        "/zfssz2/ST_MCHRI/BIGDATA/USER/caoguangshuo/anaconda3/envs/cgsp/bin/python s3.0get_snp_list.py {input} {output} 1e-7"
+
+rule get_plink_file_1e_7:
+    input:
+        "../s1.train_getID.list",
+        "../1e-7/snp.list",
+        "../s1.test_getID.list"
+    output:
+        protected("../1e-7/train/QC.bed"),
+        protected("../1e-7/train/QC.bim"),
+        protected("../1e-7/train/QC.fam"),
+        protected("../1e-7/test/QC.bed"),
+        protected("../1e-7/test/QC.bim"),
+        protected("../1e-7/test/QC.fam")
+    shell:
+        "sh s3.1.get_snps_fam_bim_bed.sh 1e-7 {input}"
+
+rule get_fam_1e_7:
+    input:
+        "../1e-7/train/QC.fam",
+        "../1e-7/test/QC.fam"
+        
+    output:
+        protected("../1e-7/train/QC.fam.new"),
+        protected("../1e-7/test/QC.fam.new")
+    params:
+        values = r'1e-7'
+    shell:
+        "/zfssz2/ST_MCHRI/BIGDATA/USER/caoguangshuo/anaconda3/envs/cgsp/bin/python s3.2.get_fam.py {params.values}"
+
+rule extract_data_1e_7:
+    input:
+        "../1e-7/train/QC.fam",
+        "../1e-7/train/QC.fam.new",
+        "../1e-7/test/QC.fam",
+        "../1e-7/test/QC.fam.new"
+    output:
+        protected("../1e-7/train.ped"),
+        protected("../1e-7/train_ML.raw"),
+        protected("../1e-7/test.ped"),
+        protected("../1e-7/test_ML.raw")
+    shell:
+        "sh s3.3.extract_data.sh 1e-7"
+        
+rule make_npz_1e_7:
+    input:
+        "../1e-7/train_ML.raw",
+        "../1e-7/test_ML.raw"
+    output:
+        protected("../1e-7/train_ML.npz"),
+        protected("../1e-7/test_ML.npz")
+    shell:
+        "/zfssz2/ST_MCHRI/BIGDATA/USER/caoguangshuo/anaconda3/envs/cgsp/bin/python s3.4.raw2npz.py 1e-7"
+
+rule s3_1e_6:
+    input:
+        "../s2.gwas_train_result.fastGWA"
+    output:
+        protected("../1e-6/snp.list")
+    shell:
+        "sh s3.0.get_snps_list.sh {input} 1e-6"
+
+rule s3_1e_6_prs:
+    input:
+        "../s2.gwas_train_result.fastGWA"
+    output:
+        protected("../1e-6/snp_prs.list")
+    shell:
+        "/zfssz2/ST_MCHRI/BIGDATA/USER/caoguangshuo/anaconda3/envs/cgsp/bin/python s3.0get_snp_list.py {input} {output} 1e-6"
+
+rule get_plink_file_1e_6:
+    input:
+        "../s1.train_getID.list",
+        "../1e-6/snp.list",
+        "../s1.test_getID.list"
+    output:
+        protected("../1e-6/train/QC.bed"),
+        protected("../1e-6/train/QC.bim"),
+        protected("../1e-6/train/QC.fam"),
+        protected("../1e-6/test/QC.bed"),
+        protected("../1e-6/test/QC.bim"),
+        protected("../1e-6/test/QC.fam")
+    shell:
+        "sh s3.1.get_snps_fam_bim_bed.sh 1e-6 {input}"
+
+rule get_fam_1e_6:
+    input:
+        "../1e-6/train/QC.fam",
+        "../1e-6/test/QC.fam"
+        
+    output:
+        protected("../1e-6/train/QC.fam.new"),
+        protected("../1e-6/test/QC.fam.new")
+    params:
+        values = r'1e-6'
+    shell:
+        "/zfssz2/ST_MCHRI/BIGDATA/USER/caoguangshuo/anaconda3/envs/cgsp/bin/python s3.2.get_fam.py {params.values}"
+
+rule extract_data_1e_6:
+    input:
+        "../1e-6/train/QC.fam",
+        "../1e-6/train/QC.fam.new",
+        "../1e-6/test/QC.fam",
+        "../1e-6/test/QC.fam.new"
+    output:
+        protected("../1e-6/train.ped"),
+        protected("../1e-6/train_ML.raw"),
+        protected("../1e-6/test.ped"),
+        protected("../1e-6/test_ML.raw")
+    shell:
+        "sh s3.3.extract_data.sh 1e-6"
+        
+rule make_npz_1e_6:
+    input:
+        "../1e-6/train_ML.raw",
+        "../1e-6/test_ML.raw"
+    output:
+        protected("../1e-6/train_ML.npz"),
+        protected("../1e-6/test_ML.npz")
+    shell:
+        "/zfssz2/ST_MCHRI/BIGDATA/USER/caoguangshuo/anaconda3/envs/cgsp/bin/python s3.4.raw2npz.py 1e-6"
+
+rule s3_1e_5:
+    input:
+        "../s2.gwas_train_result.fastGWA"
+    output:
+        protected("../1e-5/snp.list")
+    shell:
+        "sh s3.0.get_snps_list.sh {input} 1e-5"
+
+rule s3_1e_5_prs:
+    input:
+        "../s2.gwas_train_result.fastGWA"
+    output:
+        protected("../1e-5/snp_prs.list")
+    shell:
+        "/zfssz2/ST_MCHRI/BIGDATA/USER/caoguangshuo/anaconda3/envs/cgsp/bin/python s3.0get_snp_list.py {input} {output} 1e-5"
+
+rule get_plink_file_1e_5:
+    input:
+        "../s1.train_getID.list",
+        "../1e-5/snp.list",
+        "../s1.test_getID.list"
+    output:
+        protected("../1e-5/train/QC.bed"),
+        protected("../1e-5/train/QC.bim"),
+        protected("../1e-5/train/QC.fam"),
+        protected("../1e-5/test/QC.bed"),
+        protected("../1e-5/test/QC.bim"),
+        protected("../1e-5/test/QC.fam")
+    shell:
+        "sh s3.1.get_snps_fam_bim_bed.sh 1e-5 {input}"
+
+rule get_fam_1e_5:
+    input:
+        "../1e-5/train/QC.fam",
+        "../1e-5/test/QC.fam"
+        
+    output:
+        protected("../1e-5/train/QC.fam.new"),
+        protected("../1e-5/test/QC.fam.new")
+    params:
+        values = r'1e-5'
+    shell:
+        "/zfssz2/ST_MCHRI/BIGDATA/USER/caoguangshuo/anaconda3/envs/cgsp/bin/python s3.2.get_fam.py {params.values}"
+
+rule extract_data_1e_5:
+    input:
+        "../1e-5/train/QC.fam",
+        "../1e-5/train/QC.fam.new",
+        "../1e-5/test/QC.fam",
+        "../1e-5/test/QC.fam.new"
+    output:
+        protected("../1e-5/train.ped"),
+        protected("../1e-5/train_ML.raw"),
+        protected("../1e-5/test.ped"),
+        protected("../1e-5/test_ML.raw")
+    shell:
+        "sh s3.3.extract_data.sh 1e-5"
+        
+rule make_npz_1e_5:
+    input:
+        "../1e-5/train_ML.raw",
+        "../1e-5/test_ML.raw"
+    output:
+        protected("../1e-5/train_ML.npz"),
+        protected("../1e-5/test_ML.npz")
+    shell:
+        "/zfssz2/ST_MCHRI/BIGDATA/USER/caoguangshuo/anaconda3/envs/cgsp/bin/python s3.4.raw2npz.py 1e-5"
+
+rule s3_1e_4:
+    input:
+        "../s2.gwas_train_result.fastGWA"
+    output:
+        protected("../1e-4/snp.list")
+    shell:
+        "sh s3.0.get_snps_list.sh {input} 1e-4"
+
+rule s3_1e_4_prs:
+    input:
+        "../s2.gwas_train_result.fastGWA"
+    output:
+        protected("../1e-4/snp_prs.list")
+    shell:
+        "/zfssz2/ST_MCHRI/BIGDATA/USER/caoguangshuo/anaconda3/envs/cgsp/bin/python s3.0get_snp_list.py {input} {output} 1e-4"
+
+rule get_plink_file_1e_4:
+    input:
+        "../s1.train_getID.list",
+        "../1e-4/snp.list",
+        "../s1.test_getID.list"
+    output:
+        protected("../1e-4/train/QC.bed"),
+        protected("../1e-4/train/QC.bim"),
+        protected("../1e-4/train/QC.fam"),
+        protected("../1e-4/test/QC.bed"),
+        protected("../1e-4/test/QC.bim"),
+        protected("../1e-4/test/QC.fam")
+    shell:
+        "sh s3.1.get_snps_fam_bim_bed.sh 1e-4 {input}"
+
+rule get_fam_1e_4:
+    input:
+        "../1e-4/train/QC.fam",
+        "../1e-4/test/QC.fam"
+        
+    output:
+        protected("../1e-4/train/QC.fam.new"),
+        protected("../1e-4/test/QC.fam.new")
+    params:
+        values = r'1e-4'
+    shell:
+        "/zfssz2/ST_MCHRI/BIGDATA/USER/caoguangshuo/anaconda3/envs/cgsp/bin/python s3.2.get_fam.py {params.values}"
+
+rule extract_data_1e_4:
+    input:
+        "../1e-4/train/QC.fam",
+        "../1e-4/train/QC.fam.new",
+        "../1e-4/test/QC.fam",
+        "../1e-4/test/QC.fam.new"
+    output:
+        protected("../1e-4/train.ped"),
+        protected("../1e-4/train_ML.raw"),
+        protected("../1e-4/test.ped"),
+        protected("../1e-4/test_ML.raw")
+    shell:
+        "sh s3.3.extract_data.sh 1e-4"
+        
+rule make_npz_1e_4:
+    input:
+        "../1e-4/train_ML.raw",
+        "../1e-4/test_ML.raw"
+    output:
+        protected("../1e-4/train_ML.npz"),
+        protected("../1e-4/test_ML.npz")
+    shell:
+        "/zfssz2/ST_MCHRI/BIGDATA/USER/caoguangshuo/anaconda3/envs/cgsp/bin/python s3.4.raw2npz.py 1e-4"
+
+rule s3_1e_3:
+    input:
+        "../s2.gwas_train_result.fastGWA"
+    output:
+        protected("../1e-3/snp.list")
+    shell:
+        "sh s3.0.get_snps_list.sh {input} 1e-3"
+
+rule s3_1e_3_prs:
+    input:
+        "../s2.gwas_train_result.fastGWA"
+    output:
+        protected("../1e-3/snp_prs.list")
+    shell:
+        "/zfssz2/ST_MCHRI/BIGDATA/USER/caoguangshuo/anaconda3/envs/cgsp/bin/python s3.0get_snp_list.py {input} {output} 1e-3"
+
+rule get_plink_file_1e_3:
+    input:
+        "../s1.train_getID.list",
+        "../1e-3/snp.list",
+        "../s1.test_getID.list"
+    output:
+        protected("../1e-3/train/QC.bed"),
+        protected("../1e-3/train/QC.bim"),
+        protected("../1e-3/train/QC.fam"),
+        protected("../1e-3/test/QC.bed"),
+        protected("../1e-3/test/QC.bim"),
+        protected("../1e-3/test/QC.fam")
+    shell:
+        "sh s3.1.get_snps_fam_bim_bed.sh 1e-3 {input}"
+
+rule get_fam_1e_3:
+    input:
+        "../1e-3/train/QC.fam",
+        "../1e-3/test/QC.fam"
+        
+    output:
+        protected("../1e-3/train/QC.fam.new"),
+        protected("../1e-3/test/QC.fam.new")
+    params:
+        values = r'1e-3'
+    shell:
+        "/zfssz2/ST_MCHRI/BIGDATA/USER/caoguangshuo/anaconda3/envs/cgsp/bin/python s3.2.get_fam.py {params.values}"
+
+rule extract_data_1e_3:
+    input:
+        "../1e-3/train/QC.fam",
+        "../1e-3/train/QC.fam.new",
+        "../1e-3/test/QC.fam",
+        "../1e-3/test/QC.fam.new"
+    output:
+        protected("../1e-3/train.ped"),
+        protected("../1e-3/train_ML.raw"),
+        protected("../1e-3/test.ped"),
+        protected("../1e-3/test_ML.raw")
+    shell:
+        "sh s3.3.extract_data.sh 1e-3"
+        
+rule make_npz_1e_3:
+    input:
+        "../1e-3/train_ML.raw",
+        "../1e-3/test_ML.raw"
+    output:
+        protected("../1e-3/train_ML.npz"),
+        protected("../1e-3/test_ML.npz")
+    shell:
+        "/zfssz2/ST_MCHRI/BIGDATA/USER/caoguangshuo/anaconda3/envs/cgsp/bin/python s3.4.raw2npz.py 1e-3"
+        
+        
+        
+        
+
+    
+    
+    
+    
+    

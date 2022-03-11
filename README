@@ -1,0 +1,95 @@
+## Overview
+This is a workflow buid with Snakemake to get preprocessed data from UKB
+
+## Usages
+
+```shell
+cd script/
+/zfssz2/ST_MCHRI/BIGDATA/USER/zhanglin/opt/anaconda3/bin/python -m snakemake -c1
+```
+
+## dir tree
+
+```shell
+├── 1e-7  ## p_value
+│   ├── snp.list
+│   ├── test
+│   │   ├── QC.fam
+│   │   ├── QC.log
+│   │   ├── QC_new.bed
+│   │   ├── QC_new.bim
+│   │   └── QC_new.fam
+│   ├── test.log
+│   ├── test.map
+│   ├── test_ML.log
+│   ├── test_ML.npz  ## ML model input
+│   ├── test_ML.raw
+│   ├── test.ped
+│   ├── train
+│   │   ├── QC.fam
+│   │   ├── QC.log
+│   │   ├── QC_new.bed
+│   │   ├── QC_new.bim
+│   │   └── QC_new.fam
+│   ├── train.log
+│   ├── train.map
+│   ├── train_ML.log
+│   ├── train_ML.npz
+│   ├── train_ML.raw
+│   └── train.ped
+├── 1e-8
+│   ├── snp.list
+│   ├── test
+│   │   ├── QC.fam
+│   │   ├── QC.log
+│   │   ├── QC_new.bed
+│   │   ├── QC_new.bim
+│   │   └── QC_new.fam
+│   ├── test.log
+│   ├── test.map
+│   ├── test_ML.log
+│   ├── test_ML.npz
+│   ├── test_ML.raw
+│   ├── test.ped
+│   ├── train
+│   │   ├── QC.fam
+│   │   ├── QC.log
+│   │   ├── QC_new.bed
+│   │   ├── QC_new.bim
+│   │   └── QC_new.fam
+│   ├── train.log
+│   ├── train.map
+│   ├── train_ML.log
+│   ├── train_ML.npz
+│   ├── train_ML.raw
+│   └── train.ped
+├── keep.list
+├── mhd.png   ## Manhattan plot
+├── qq_plot.png ## Q-Q plot
+├── s0.pheno.txt
+├── s1.all_valid_pheno.txt
+├── s1.test_getID.list
+├── s1.test_pheno.txt
+├── s1.train_getID.list
+├── s1.train_pheno.txt
+├── s2.gwas_train_result.fastGWA
+├── s2.gwas_train_result.log
+├── s2.P.stat.txt
+├── s2.P.stat.txt.old
+├── script
+│   ├── s0.0.get_pheno.py
+│   ├── s0.1.transdata.py
+│   ├── s0.2.HEreg.sh
+│   ├── s1.generate_data.py
+│   ├── s2.0.GWAS.sh
+│   ├── s2.1.test.sh
+│   ├── s2.2.stat-By-P_value.pl
+│   ├── s2.4.plot_GWAS.R
+│   ├── s3.0.get_snps_list.sh
+│   ├── s3.1.get_snps_fam_bim_bed.sh
+│   ├── s3.2.get_fam.py
+│   ├── s3.3.extract_data.sh
+│   ├── s3.4.raw2npz.py
+│   └── Snakefile
+└── white   ## Race keep, please add it before Run
+    └── race_keep.list

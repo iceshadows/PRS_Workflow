@@ -1,0 +1,1 @@
+/zfssz2/ST_MCHRI/BIGDATA/USER/caoguangshuo/anaconda3/envs/cgsp/bin/python -m snakemake -c1 -k -r "mhd_qq_plot"
